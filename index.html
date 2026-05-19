@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<title>PawSwipe 🐾</title>
+<style>
+  :root {
+    --yes: #22c55e; --no: #ef4444;
+    --bg: #0f172a; --card: #1e293b; --surface: #334155;
+    --text: #f1f5f9; --muted: #94a3b8; --accent: #f97316;
+    --r: 20px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);
+    font-family:'Segoe UI',system-ui,sans-serif;}
+
+  /* ── Layout ── */
+  #app{display:flex;flex-direction:column;height:100dvh;max-width:430px;
+    margin:0 auto;position:relative;}
+
+  /* ── Header ── */
+  header{display:flex;align-items:center;justify-content:space-between;
+    padding:16px 20px 8px;flex-shrink:0;}
+  .logo{font-size:1.4rem;font-weight:800;letter-spacing:-0.5px;}
+  .logo span{color:var(--accent);}
+  .tab-btns{display:flex;gap:6px;}
+  .tab-btn{background:var(--surface);border:none;color:var(--muted);
+    padding:6px 14px;border-radius:20px;font-size:.8rem;cursor:pointer;transition:.2s;}
+  .tab-btn.active{background:var(--accent);color:#fff;}
+
+  /* ── Progress ── */
+  #progress-bar-wrap{padding:0 20px 10px;flex-shrink:0;}
+  #progress-text{font-size:.75rem;color:var(--muted);margin-bottom:4px;}
+  #progress-bar{height:4px;background:var(--surface);border-radius:2px;}
+  #progress-fill{height:100%;background:var(--accent);border-radius:2px;
+    transition:width .3s;}
+
+  /* ── Swipe View ── */
+  #swipe-view{flex:1;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;padding:0 16px 16px;position:relative;overflow:hidden;}
+  #card-stack{position:relative;width:100%;flex:1;max-height:520px;}
+
+  .card{position:absolute;inset:0;background:var(--card);border-radius:var(--r);
+    overflow:hidden;cursor:grab;user-select:none;
+    box-shadow:0 8px 32px rgba(0,0,0,.4);
+    transition:box-shadow .15s;}
+  .card:active{cursor:grabbing;}
+  .card img{width:100%;height:65%;object-fit:cover;pointer-events:none;
+    background:#1e293b;}
+  .card-info{padding:14px 16px;}
+  .card-name{font-size:1.3rem;font-weight:700;}
+  .card-breed{font-size:.8rem;color:var(--accent);margin:2px 0 6px;font-weight:600;}
+  .card-desc{font-size:.82rem;color:var(--muted);line-height:1.45;}
+
+  /* vote overlays */
+  .stamp{position:absolute;top:28px;padding:6px 18px;border-radius:8px;
+    font-size:1.6rem;font-weight:900;opacity:0;pointer-events:none;
+    border:4px solid;transform:rotate(-15deg);transition:opacity .05s;}
+  .stamp-yes{left:18px;color:var(--yes);border-color:var(--yes);transform:rotate(-15deg);}
+  .stamp-no{right:18px;color:var(--no);border-color:var(--no);transform:rotate(15deg);}
+
+  /* background cards */
+  .card-bg{position:absolute;inset:0;background:var(--card);border-radius:var(--r);
+    pointer-events:none;}
+  .card-bg-1{transform:scale(.96) translateY(10px);z-index:0;opacity:.7;}
+  .card-bg-2{transform:scale(.92) translateY(20px);z-index:-1;opacity:.4;}
+
+  /* ── Action Buttons ── */
+  #actions{display:flex;justify-content:center;gap:28px;padding:12px 0 8px;
+    flex-shrink:0;}
+  .action-btn{width:62px;height:62px;border-radius:50%;border:none;cursor:pointer;
+    font-size:1.5rem;display:flex;align-items:center;justify-content:center;
+    box-shadow:0 4px 16px rgba(0,0,0,.3);transition:transform .15s,box-shadow .15s;}
+  .action-btn:active{transform:scale(.9);}
+  #btn-no{background:#1e293b;border:2px solid var(--no);color:var(--no);}
+  #btn-yes{background:#1e293b;border:2px solid var(--yes);color:var(--yes);}
+  #btn-undo{background:#1e293b;border:2px solid var(--muted);color:var(--muted);
+    width:46px;height:46px;font-size:1.1rem;align-self:center;}
+
+  /* ── Done State ── */
+  #done-view{flex:1;display:none;flex-direction:column;align-items:center;
+    justify-content:center;gap:14px;padding:24px;text-align:center;}
+  #done-view h2{font-size:1.6rem;}
+  #done-view p{color:var(--muted);}
+  .cta-btn{background:var(--accent);color:#fff;border:none;padding:14px 32px;
+    border-radius:30px;font-size:1rem;font-weight:700;cursor:pointer;}
+
+  /* ── Results View ── */
+  #results-view{flex:1;display:none;flex-direction:column;overflow:hidden;}
+  #results-header{padding:12px 20px;flex-shrink:0;}
+  #results-header h2{font-size:1.2rem;font-weight:700;}
+  .filter-row{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;}
+  .filter-btn{background:var(--surface);border:none;color:var(--muted);
+    padding:5px 12px;border-radius:16px;font-size:.75rem;cursor:pointer;}
+  .filter-btn.active{background:var(--accent);color:#fff;}
+
+  #results-list{flex:1;overflow-y:auto;padding:0 16px 20px;}
+  #results-list::-webkit-scrollbar{width:4px;}
+  #results-list::-webkit-scrollbar-thumb{background:var(--surface);border-radius:2px;}
+
+  .result-item{display:flex;align-items:center;gap:12px;padding:10px 0;
+    border-bottom:1px solid var(--surface);}
+  .result-rank{font-size:.9rem;font-weight:700;color:var(--muted);width:24px;
+    flex-shrink:0;text-align:center;}
+  .result-rank.gold{color:#f59e0b;}
+  .result-rank.silver{color:#94a3b8;}
+  .result-rank.bronze{color:#b45309;}
+  .result-img{width:52px;height:52px;border-radius:10px;object-fit:cover;
+    flex-shrink:0;background:var(--surface);}
+  .result-info{flex:1;min-width:0;}
+  .result-name{font-weight:700;font-size:.9rem;white-space:nowrap;
+    overflow:hidden;text-overflow:ellipsis;}
+  .result-breed{font-size:.72rem;color:var(--accent);}
+  .result-bars{margin-top:4px;}
+  .bar-row{display:flex;align-items:center;gap:6px;font-size:.7rem;}
+  .bar-track{flex:1;height:5px;background:var(--surface);border-radius:3px;overflow:hidden;}
+  .bar-fill-yes{height:100%;background:var(--yes);border-radius:3px;}
+  .bar-fill-no{height:100%;background:var(--no);border-radius:3px;}
+  .bar-label{width:28px;text-align:right;color:var(--muted);}
+
+  /* ── Toast ── */
+  #toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%) translateY(20px);
+    background:#1e293b;border:1px solid var(--surface);color:var(--text);
+    padding:10px 20px;border-radius:20px;font-size:.85rem;opacity:0;
+    transition:all .3s;pointer-events:none;white-space:nowrap;z-index:99;}
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+  /* ── Loading ── */
+  #loading{position:fixed;inset:0;background:var(--bg);display:flex;
+    align-items:center;justify-content:center;flex-direction:column;gap:16px;z-index:100;}
+  .paw-loader{font-size:3rem;animation:bounce .8s infinite alternate;}
+  @keyframes bounce{to{transform:translateY(-16px);}}
+  .loading-text{color:var(--muted);font-size:.9rem;}
+</style>
+</head>
+<body>
+
+<div id="loading">
+  <div class="paw-loader">🐾</div>
+  <div class="loading-text">Loading adorable pets…</div>
+</div>
+
+<div id="app" style="display:none;">
+  <header>
+    <div class="logo">Paw<span>Swipe</span></div>
+    <div class="tab-btns">
+      <button class="tab-btn active" id="tab-vote" onclick="showTab('vote')">🐾 Vote</button>
+      <button class="tab-btn" id="tab-results" onclick="showTab('results')">📊 Results</button>
+    </div>
+  </header>
+
+  <div id="progress-bar-wrap">
+    <div id="progress-text">0 / 100 voted</div>
+    <div id="progress-bar"><div id="progress-fill" style="width:0%"></div></div>
+  </div>
+
+  <!-- Swipe view -->
+  <div id="swipe-view">
+    <div id="card-stack">
+      <div class="card-bg card-bg-2"></div>
+      <div class="card-bg card-bg-1"></div>
+      <div class="card" id="top-card">
+        <img id="card-img" src="" alt=""/>
+        <div class="stamp stamp-yes" id="stamp-yes">YES ✓</div>
+        <div class="stamp stamp-no"  id="stamp-no">NOPE ✗</div>
+        <div class="card-info">
+          <div class="card-name" id="card-name"></div>
+          <div class="card-breed" id="card-breed"></div>
+          <div class="card-desc"  id="card-desc"></div>
+        </div>
+      </div>
+    </div>
+    <div id="actions">
+      <button class="action-btn" id="btn-no"  onclick="castVote('no')">✕</button>
+      <button class="action-btn" id="btn-undo" onclick="undoVote()" title="Undo">↩</button>
+      <button class="action-btn" id="btn-yes" onclick="castVote('yes')">♥</button>
+    </div>
+  </div>
+
+  <!-- Done view -->
+  <div id="done-view">
+    <div style="font-size:3rem">🎉</div>
+    <h2>You've seen them all!</h2>
+    <p>You voted on all 100 pets.<br/>See how others feel about them.</p>
+    <button class="cta-btn" onclick="showTab('results')">View Results →</button>
+  </div>
+
+  <!-- Results view -->
+  <div id="results-view">
+    <div id="results-header">
+      <h2>🏆 Community Results</h2>
+      <div class="filter-row">
+        <button class="filter-btn active" onclick="setFilter('top')">Most Loved</button>
+        <button class="filter-btn" onclick="setFilter('divisive')">Most Divisive</button>
+        <button class="filter-btn" onclick="setFilter('unpopular')">Least Loved</button>
+        <button class="filter-btn" onclick="setFilter('alpha')">A–Z</button>
+      </div>
+    </div>
+    <div id="results-list"></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── Session ID ─────────────────────────────────────────────────────────────
+let sessionId = localStorage.getItem("pawswipe_session");
+if (!sessionId) {
+  sessionId = "sess_" + Math.random().toString(36).slice(2) + Date.now();
+  localStorage.setItem("pawswipe_session", sessionId);
+}
+
+// ── State ──────────────────────────────────────────────────────────────────
+let items = [];
+let currentIndex = 0;
+let voted = JSON.parse(localStorage.getItem("pawswipe_voted") || "{}");
+let history = []; // for undo
+let resultsData = [];
+let currentFilter = "top";
+
+// ── Init ───────────────────────────────────────────────────────────────────
+async function init() {
+  const res = await fetch("/items");
+  items = await res.json();
+  // skip already voted
+  currentIndex = items.findIndex(it => !voted[it.id]);
+  if (currentIndex === -1) currentIndex = items.length;
+  updateProgress();
+  renderCard();
+  document.getElementById("loading").style.display = "none";
+  document.getElementById("app").style.display = "flex";
+}
+
+// ── Card Rendering ─────────────────────────────────────────────────────────
+function renderCard() {
+  if (currentIndex >= items.length) {
+    document.getElementById("swipe-view").style.display = "none";
+    document.getElementById("done-view").style.display = "flex";
+    return;
+  }
+  const p = items[currentIndex];
+  document.getElementById("card-img").src = p.image;
+  document.getElementById("card-name").textContent = p.name;
+  document.getElementById("card-breed").textContent = p.breed;
+  document.getElementById("card-desc").textContent = p.description;
+  document.getElementById("stamp-yes").style.opacity = 0;
+  document.getElementById("stamp-no").style.opacity = 0;
+  resetCardTransform();
+}
+
+function updateProgress() {
+  const n = Object.keys(voted).length;
+  document.getElementById("progress-text").textContent = `${n} / ${items.length} voted`;
+  document.getElementById("progress-fill").style.width = `${(n/items.length)*100}%`;
+}
+
+// ── Swipe Gesture ──────────────────────────────────────────────────────────
+const card = document.getElementById("top-card");
+let startX = 0, startY = 0, curX = 0, dragging = false;
+const THRESHOLD = 90;
+
+function onStart(x, y) { startX = x; startY = y; curX = 0; dragging = true; }
+function onMove(x, y) {
+  if (!dragging) return;
+  curX = x - startX;
+  const curY = y - startY;
+  const rot = curX * 0.08;
+  card.style.transform = `translate(${curX}px,${curY * 0.3}px) rotate(${rot}deg)`;
+  const ratio = Math.min(Math.abs(curX) / THRESHOLD, 1);
+  if (curX > 0) {
+    document.getElementById("stamp-yes").style.opacity = ratio;
+    document.getElementById("stamp-no").style.opacity = 0;
+    card.style.boxShadow = `0 8px 32px rgba(34,197,94,${ratio * 0.5})`;
+  } else {
+    document.getElementById("stamp-no").style.opacity = ratio;
+    document.getElementById("stamp-yes").style.opacity = 0;
+    card.style.boxShadow = `0 8px 32px rgba(239,68,68,${ratio * 0.5})`;
+  }
+}
+function onEnd() {
+  if (!dragging) return;
+  dragging = false;
+  if (Math.abs(curX) >= THRESHOLD) {
+    flyOff(curX > 0 ? "yes" : "no");
+  } else {
+    resetCardTransform();
+  }
+}
+
+// Touch
+card.addEventListener("touchstart", e => onStart(e.touches[0].clientX, e.touches[0].clientY), {passive:true});
+card.addEventListener("touchmove",  e => { e.preventDefault(); onMove(e.touches[0].clientX, e.touches[0].clientY); }, {passive:false});
+card.addEventListener("touchend",   () => onEnd());
+// Mouse
+card.addEventListener("mousedown",  e => onStart(e.clientX, e.clientY));
+window.addEventListener("mousemove", e => { if(dragging) onMove(e.clientX, e.clientY); });
+window.addEventListener("mouseup",  () => { if(dragging) onEnd(); });
+
+function resetCardTransform() {
+  card.style.transition = "transform .35s cubic-bezier(.175,.885,.32,1.275), box-shadow .2s";
+  card.style.transform = "";
+  card.style.boxShadow = "";
+  setTimeout(() => card.style.transition = "", 350);
+}
+
+function flyOff(choice) {
+  const dir = choice === "yes" ? 1 : -1;
+  card.style.transition = "transform .4s ease-in, opacity .4s";
+  card.style.transform = `translate(${dir * 120}%,-10%) rotate(${dir * 25}deg)`;
+  card.style.opacity = "0";
+  setTimeout(() => {
+    card.style.transition = "";
+    card.style.transform = "";
+    card.style.opacity = "1";
+    castVote(choice, true);
+  }, 400);
+}
+
+// ── Vote Logic ─────────────────────────────────────────────────────────────
+async function castVote(choice, fromSwipe = false) {
+  if (currentIndex >= items.length) return;
+  if (!fromSwipe) flyOff(choice);
+  const item = items[currentIndex];
+  voted[item.id] = choice;
+  localStorage.setItem("pawswipe_voted", JSON.stringify(voted));
+  history.push({ index: currentIndex, itemId: item.id });
+  currentIndex++;
+  updateProgress();
+  renderCard();
+  showToast(choice === "yes" ? "❤️ Liked!" : "👋 Passed");
+  // fire and forget
+  fetch("/vote", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ itemId: item.id, choice, sessionId })
+  });
+}
+
+async function undoVote() {
+  if (!history.length) { showToast("Nothing to undo"); return; }
+  const last = history.pop();
+  delete voted[last.itemId];
+  localStorage.setItem("pawswipe_voted", JSON.stringify(voted));
+  currentIndex = last.index;
+  updateProgress();
+  renderCard();
+  showToast("↩ Undone");
+}
+
+// ── Tabs ───────────────────────────────────────────────────────────────────
+function showTab(tab) {
+  document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+  document.getElementById("tab-" + tab).classList.add("active");
+  const isDone = currentIndex >= items.length;
+  document.getElementById("swipe-view").style.display  = (tab==="vote" && !isDone) ? "flex" : "none";
+  document.getElementById("done-view").style.display   = (tab==="vote" &&  isDone) ? "flex" : "none";
+  document.getElementById("results-view").style.display= tab==="results" ? "flex" : "none";
+  if (tab === "results") loadResults();
+}
+
+// ── Results ────────────────────────────────────────────────────────────────
+let resultsFetched = false;
+async function loadResults() {
+  if (!resultsFetched) {
+    const res = await fetch("/results");
+    resultsData = await res.json();
+    resultsFetched = false; // always refresh
+  }
+  const res = await fetch("/results");
+  resultsData = await res.json();
+  renderResults();
+}
+
+function setFilter(f) {
+  currentFilter = f;
+  document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+  event.target.classList.add("active");
+  renderResults();
+}
+
+function renderResults() {
+  let data = [...resultsData];
+  if (currentFilter === "top")       data.sort((a,b) => b.yes_count - a.yes_count);
+  if (currentFilter === "unpopular") data.sort((a,b) => a.yes_count - b.yes_count);
+  if (currentFilter === "alpha")     data.sort((a,b) => a.name.localeCompare(b.name));
+  if (currentFilter === "divisive") {
+    data.sort((a,b) => {
+      const ra = a.yes_count + a.no_count ? a.yes_count/(a.yes_count+a.no_count) : 0.5;
+      const rb = b.yes_count + b.no_count ? b.yes_count/(b.yes_count+b.no_count) : 0.5;
+      return Math.abs(ra - 0.5) - Math.abs(rb - 0.5); // closest to 50/50 first
+    });
+  }
+
+  const container = document.getElementById("results-list");
+  container.innerHTML = data.map((item, i) => {
+    const total = item.yes_count + item.no_count;
+    const yesPct = total ? Math.round(item.yes_count / total * 100) : 0;
+    const noPct  = total ? Math.round(item.no_count  / total * 100) : 0;
+    const rankClass = i===0?"gold":i===1?"silver":i===2?"bronze":"";
+    const rankLabel = i===0?"🥇":i===1?"🥈":i===2?"🥉":`${i+1}`;
+    return `
+    <div class="result-item">
+      <div class="result-rank ${rankClass}">${rankLabel}</div>
+      <img class="result-img" src="${item.image}" alt="${item.name}" loading="lazy"/>
+      <div class="result-info">
+        <div class="result-name">${item.name}</div>
+        <div class="result-breed">${item.breed}</div>
+        <div class="result-bars">
+          <div class="bar-row">
+            <span style="color:var(--yes);font-size:.7rem">♥</span>
+            <div class="bar-track"><div class="bar-fill-yes" style="width:${yesPct}%"></div></div>
+            <span class="bar-label">${yesPct}%</span>
+          </div>
+          <div class="bar-row">
+            <span style="color:var(--no);font-size:.7rem">✕</span>
+            <div class="bar-track"><div class="bar-fill-no" style="width:${noPct}%"></div></div>
+            <span class="bar-label">${noPct}%</span>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+// ── Toast ──────────────────────────────────────────────────────────────────
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove("show"), 1400);
+}
+
+// ── Keyboard shortcuts ─────────────────────────────────────────────────────
+document.addEventListener("keydown", e => {
+  if (e.key === "ArrowRight") castVote("yes");
+  if (e.key === "ArrowLeft")  castVote("no");
+  if (e.key === "z")          undoVote();
+});
+
+init();
+</script>
+</body>
+</html>
