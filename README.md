@@ -1,12 +1,60 @@
 # 🐾 PawSwipe — Swipe to Adopt
 
 > A mobile-first swipe-to-vote app for adoptable dogs. Swipe right to adopt ❤️, left to pass 👋. See how the community votes in real time.
-
 ![Python](https://img.shields.io/badge/Python-3.9+-3776AB?style=flat&logo=python&logoColor=white)
 ![Flask](https://img.shields.io/badge/Flask-3.1-000000?style=flat&logo=flask&logoColor=white)
 ![SQLite](https://img.shields.io/badge/SQLite-Database-003B57?style=flat&logo=sqlite&logoColor=white)
 ![JavaScript](https://img.shields.io/badge/JavaScript-Vanilla-F7DF1E?style=flat&logo=javascript&logoColor=black)
 ![Mobile](https://img.shields.io/badge/Mobile-First-orange?style=flat)
+
+### Installation
+```bash
+# 1. Clone the repo
+git clone https://github.com/YOUR_USERNAME/pawswipe.git
+cd pawswipe
+
+# 2. Install Flask
+pip install flask
+
+# 3. Seed the database (run once)
+cd backend
+python seed.py
+
+# 4. Start the server
+python app.py
+```
+## 🛠️ Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Frontend | Vanilla HTML / CSS / JavaScript |
+| Backend | Python + Flask |
+| Database | SQLite (stdlib) |
+| Gestures | Native Touch & Mouse Events |
+| Persistence | SQLite + localStorage (session cache) |
+
+Then open **http://localhost:5000** in your browser.
+
+## 🏗️ Architecture
+Browser / Mobile (frontend)
+├── Swipe UI — drag gestures, tilt, stamp overlay
+├── Results view — sort + filter
+└── Session cache — localStorage (dedup helper only)
+↓ GET /items   ↓ POST /vote   ↓ GET /results
+Flask Backend (app.py) — port 5000
+├── GET  /items   → returns all 100 pets
+├── POST /vote    → deduplicates + persists vote
+└── GET  /results → returns aggregate yes/no counts
+↓
+SQLite Database (votes.db)
+├── items table  — id, name, breed, description, image
+└── votes table  — UNIQUE(item_id, session_id) · INSERT OR REPLACE
+
+**Frontend:** Single HTML/CSS/JS file served statically by Flask. No framework. Touch and mouse gestures handled natively. Session UUID in localStorage identifies the user for deduplication only.
+
+**Backend:** Python/Flask with SQLite (stdlib — no extra install). Votes use `INSERT OR REPLACE` with a `UNIQUE(item_id, session_id)` constraint so a user can flip their vote but never inflate the count. SQLite chosen for zero-config, file-based simplicity.
+
+<img width="1366" height="1040" alt="image" src="https://github.com/user-attachments/assets/8a296791-78ea-44ea-8878-61f5a058e3cb" />
 
 ## 🖥️Screenshots
 <img width="1600" height="807" alt="WhatsApp Image 2026-05-18 at 18 08 16" src="https://github.com/user-attachments/assets/134e15c1-79bd-460c-8bc8-6dde37b15201" />
@@ -34,44 +82,6 @@
 - 🖥️ **Real backend** — Flask + SQLite, votes persist server-side
 
 ---
-
-## 🛠️ Tech Stack
-
-| Layer | Technology |
-|---|---|
-| Frontend | Vanilla HTML / CSS / JavaScript |
-| Backend | Python + Flask |
-| Database | SQLite (stdlib) |
-| Gestures | Native Touch & Mouse Events |
-| Persistence | SQLite + localStorage (session cache) |
-
----
-
-## 🚀 Getting Started
-
-### Prerequisites
-- Python 3.9+
-- pip
-
-### Installation
-
-```bash
-# 1. Clone the repo
-git clone https://github.com/YOUR_USERNAME/pawswipe.git
-cd pawswipe
-
-# 2. Install Flask
-pip install flask
-
-# 3. Seed the database (run once)
-cd backend
-python seed.py
-
-# 4. Start the server
-python app.py
-```
-
-Then open **http://localhost:5000** in your browser.
 
 > 📱 To test on your phone: run `ipconfig` (Windows) or `ifconfig` (Mac) to get your laptop IP, then visit `http://<your-ip>:5000` on the same Wi-Fi.
 
